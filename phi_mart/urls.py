@@ -18,9 +18,10 @@ from django.contrib import admin
 from django.urls import include, path
 from debug_toolbar.toolbar import debug_toolbar_urls
 from api import urls 
+from .views import api_root_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls')),
-    path('api/v1/', include('api.urls'))
+    path('', api_root_view),
+    path('api/v1/', include('api.urls'),name='api-root')
 ]+ debug_toolbar_urls()
