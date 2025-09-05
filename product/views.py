@@ -16,6 +16,9 @@ from product.filters import ProductFilter
 from rest_framework.filters import SearchFilter,OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 from product.paginations import DefaultPagination
+from rest_framework.permissions import IsAdminUser,AllowAny,DjangoModelPermissions,DjangoModelPermissionsOrAnonReadOnly
+from api.permissions import IsAdminOrReadOnly
+from product.permissions import IsReviewAuthorOrReadOnly
 # Create your views here.
 # @api_view(['GET','DELETE','PUT'])  
 # def view_specific_product(request, pk):
@@ -158,10 +161,18 @@ from product.paginations import DefaultPagination
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.annotate(product_count=Count('products')).all()
     serializer_class = CategorySerializer
+    permission_classes=[IsAdminOrReadOnly]
 
 
 class ReviewViewSet(ModelViewSet):
     serializer_class = ReviewSerializer
+    permission_classes=[IsReviewAuthorOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
 
     def get_queryset(self): # type: ignore
         return Review.objects.filter(product_id=self.kwargs['product_pk'])
@@ -179,7 +190,12 @@ class ProductViewSet(ModelViewSet):
     ordering_fields = ['price', 'updated_at']
     ordering = ['updated_at']
     pagination_class = DefaultPagination
-
+    permission_classes = [IsAdminOrReadOnly]
+    # permission_classes=[DjangoModelPermissions]
+    # def get_permissions(self): # type: ignore
+    #     if self.request.method == 'GET':
+    #         return [AllowAny()]
+    #     return [IsAdminUser()]
     # def get_queryset(self): # type: ignore
     #     queryset = Product.objects.all()
     #     category_id=self.request.query_params.get('category_id') # type: ignore

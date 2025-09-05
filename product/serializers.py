@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from decimal import Decimal
 
+from phi_mart import settings
 from product.models import Category, Product, Review
+from django.contrib.auth import get_user_model
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,10 +53,25 @@ class ProductSerializer(serializers.ModelSerializer):
     #     return product
 
 class ReviewSerializer(serializers.ModelSerializer):
+    user=serializers.SerializerMethodField(method_name='get_user')
     class Meta:
         model = Review
-        fields = ['id', 'name', 'description',]
+        fields = ['id', 'user', 'comment', 'ratings', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']
 
     def create(self, validated_data):
         product_id=self.context['product_id']
         return Review.objects.create(product_id=product_id, **validated_data)
+    
+    def get_user(self, obj):
+        return SimpleUserSerializer(obj.user).data
+    
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    name=serializers.SerializerMethodField(method_name='get_current_user_name')
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'name', 'email']    
+
+        def get_current_user_name(self,obj):
+            return obj.get_full_name()
