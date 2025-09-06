@@ -1,7 +1,13 @@
 from rest_framework import serializers
-from order.models import Cart,CartItem
+from order.models import Cart,CartItem, Order, OrderItem
+from order.services import OrderService
 from product.models import Product
 from product.serializers import ProductSerializer
+
+
+
+class EmptySerializer(serializers.Serializer):
+    pass
 
 
 class SimpleProductSerializer(serializers.ModelSerializer):
@@ -65,9 +71,59 @@ class CartSerializer(serializers.ModelSerializer):
     class Meta:
         model=Cart
         fields=['id','user','items','total_price']
+        read_only_fields = ['user']
 
     def get_total_price(self, cart:Cart):
         return sum([item.product.price * item.quantity for item in cart.items.all()])     # type: ignore
     
 
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = SimpleProductSerializer(read_only=True)
 
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'quantity', 'price', 'total_price']  
+
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items=OrderItemSerializer(many=True, read_only=True)
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'status', 'total_price', 'created_at', 'items']
+        read_only_fields = ['user', 'status', 'total_price', 'created_at']
+
+class CreateOrderSerializer(serializers.Serializer):
+    cart_id = serializers.UUIDField()
+
+    def validate_cart_id(self, value):
+        if not Cart.objects.filter(pk=value).exists():
+            raise serializers.ValidationError("No cart with the given id exists")
+        if not CartItem.objects.filter(cart_id=value).exists():
+            raise serializers.ValidationError("The cart is empty")
+        return value
+
+    def create(self, validated_data):
+        cart_id = validated_data['cart_id']
+        user_id = self.context['user_id']
+        try:
+            order = OrderService.create_order(user_id, cart_id)
+            return order
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+    def to_representation(self, instance): # type: ignore
+        return OrderSerializer(instance).data
+    
+
+class UpdateOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['status']   
+
+    # def update(self, instance, validated_data):
+    #     new_status=validated_data['status']
+    #     if new_status == Order.CANCELED:
+    #         return OrderService.cancel_order(instance, self.context['user'])
+    #     if not self.context['user'].is_staff:
+    #         raise serializers.ValidationError({"detail":"Only admin users can update the order status."})
+    #     return super().update(instance, validated_data)
