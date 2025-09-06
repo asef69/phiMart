@@ -2,7 +2,7 @@ from rest_framework import serializers
 from decimal import Decimal
 
 from phi_mart import settings
-from product.models import Category, Product, Review
+from product.models import Category, Product, ProductImage, Review
 from django.contrib.auth import get_user_model
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -29,12 +29,16 @@ class CategorySerializer(serializers.ModelSerializer):
 #     def calculate_tax(self, product):
 #         price = product.price
 #         return round(price * Decimal(1.1), 2)
-
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProductImage
+        fields=['id','image']
 class ProductSerializer(serializers.ModelSerializer):
+    images=ProductImageSerializer(many=True, read_only=True)
     class Meta:
         model=Product 
         # fields='__all__'
-        fields=['id','name','price','description','category','stock','price_with_tax',]
+        fields=['id','name','price','description','category','stock','price_with_tax','images']
 
     price_with_tax=serializers.SerializerMethodField(method_name='calculate_tax')
     
@@ -75,3 +79,9 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
         def get_current_user_name(self,obj):
             return obj.get_full_name()
+        
+
+
+
+
+       

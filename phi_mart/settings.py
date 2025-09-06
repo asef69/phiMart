@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'order',
     'debug_toolbar',
     'django_filters',
-    'djoser'
+    'djoser',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -130,6 +131,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -158,4 +162,15 @@ DJOSER = {
         'user_create':'users.serializers.UserCreateSerializer',
         'current_user':'users.serializers.UserSerializer',
     }
+}
+
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "JWT Authorization header using the Bearer scheme. Example: 'Authorization: JWT {token}'"
+      }
+   }
 }
