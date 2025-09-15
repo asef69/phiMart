@@ -183,7 +183,6 @@ class ReviewViewSet(ModelViewSet):
     
 
 class ProductViewSet(ModelViewSet):
-    queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
@@ -192,6 +191,9 @@ class ProductViewSet(ModelViewSet):
     ordering = ['updated_at']
     pagination_class = DefaultPagination
     permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self): # type: ignore
+        return Product.objects.prefetch_related('images').select_related('category').all()
 
 
     @swagger_auto_schema( 
