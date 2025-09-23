@@ -11,6 +11,7 @@ from order.services import OrderService
 from rest_framework.response import Response
 from rest_framework import status
 from sslcommerz_lib import SSLCOMMERZ
+from rest_framework.views import APIView
 
 from phi_mart.settings import BACKEND_URL, FRONTEND_URL 
 # Create your views here.
@@ -164,3 +165,15 @@ def payment_cancel(request):
 def payment_fail(request):
     print("Inside fail")
     return HttpResponseRedirect(f"{FRONTEND_URL}/dashboard/orders/")
+
+
+class HasOrderedProduct(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, product_id):
+        user = request.user
+        has_ordered = OrderItem.objects.filter(
+            order__user=user,
+            product_id=product_id,
+        ).exists()
+        return Response({'has_ordered': has_ordered})
