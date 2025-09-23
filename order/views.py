@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from django.shortcuts import render, redirect
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from order import serializers as orderSz
@@ -9,7 +10,9 @@ from rest_framework.decorators import action,api_view
 from order.services import OrderService
 from rest_framework.response import Response
 from rest_framework import status
-from sslcommerz_lib import SSLCOMMERZ 
+from sslcommerz_lib import SSLCOMMERZ
+
+from phi_mart.settings import BACKEND_URL, FRONTEND_URL 
 # Create your views here.
 
 # serializer = OrderSerializer(order)
@@ -115,9 +118,9 @@ def initiate_payment(request):
     post_body['total_amount'] = amount
     post_body['currency'] = "BDT"
     post_body['tran_id'] = f"txn_{order_id}"
-    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success"
-    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail"
-    post_body['cancel_url'] = "http://localhost:5173/dashboard/orders/"
+    post_body['success_url'] = f"{BACKEND_URL}/api/v1/payment/success/"
+    post_body['fail_url'] = f"{BACKEND_URL}/api/v1/payment/fail/"
+    post_body['cancel_url'] = f"{BACKEND_URL}/api/v1/payment/cancel/"
     post_body['emi_option'] = 0
     post_body['cus_name'] = f"{user.first_name} {user.last_name}"
     post_body['cus_email'] = user.email
@@ -140,3 +143,24 @@ def initiate_payment(request):
     return Response({'error': 'Failed to initiate payment'}, status=status.HTTP_400_BAD_REQUEST)
     
     # Need to redirect user to response['GatewayPageURL']
+
+
+@api_view(['POST'])
+def payment_success(request):
+    print("Inside success")
+    order_id = request.data.get("tran_id").split('_')[1]
+    order = Order.objects.get(id=order_id)
+    order.status = "Ready To Ship"
+    order.save()
+    return HttpResponseRedirect(f"{FRONTEND_URL}/dashboard/orders/")
+
+
+@api_view(['POST'])
+def payment_cancel(request):
+    return HttpResponseRedirect(f"{FRONTEND_URL}/dashboard/orders/")
+
+
+@api_view(['POST'])
+def payment_fail(request):
+    print("Inside fail")
+    return HttpResponseRedirect(f"{FRONTEND_URL}/dashboard/orders/")
